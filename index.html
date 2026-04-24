@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuclear Impact Simulation</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            color: #ff3e3e;
+            pointer-events: none;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* The Blinding Flash */
+        #flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .btn-trigger {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 40px;
+            background: transparent;
+            border: 2px solid #ff3e3e;
+            color: #ff3e3e;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            pointer-events: auto;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .btn-trigger:hover {
+            background: #ff3e3e;
+            color: white;
+            box-shadow: 0 0 20px #ff3e3e;
+        }
+
+        @keyframes cameraShake {
+            0% { transform: translate(0,0); }
+            10% { transform: translate(-5px, -5px); }
+            20% { transform: translate(5px, 5px); }
+            30% { transform: translate(-5px, 5px); }
+            40% { transform: translate(5px, -5px); }
+            100% { transform: translate(0,0); }
+        }
+
+        .shake {
+            animation: cameraShake 0.1s infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <h1>SYSTEM: WEAPON_READY</h1>
+        <p>LOCATION: 0.0.0.0</p>
+    </div>
+
+    <div id="flash"></div>
+    <button class="btn-trigger" onclick="detonate()">Initiate Core Collapse</button>
+    <canvas id="nukeCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('nukeCanvas');
+        const ctx = canvas.getContext('2d');
+        const flash = document.getElementById('flash');
+        
+        let width, height;
+        let particles = [];
+        let active = false;
+
+        function init() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', init);
+        init();
+
+        class Particle {
+            constructor(x, y, color, speed, size) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * speed;
+                this.vy = (Math.random() - 0.8) * speed; // Upward bias
+                this.life = 1;
+                this.decay = Math.random() * 0.02 + 0.005;
+                this.size = size;
+                this.color = color;
+            }
+
+            draw() {
+                ctx.globalAlpha = this.life;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size * this.life, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+                this.vy -= 0.1; // Simulated rising heat (mushroom cloud effect)
+            }
+        }
+
+        function detonate() {
+            if (active) return;
+            active = true;
+            
+            // 1. Flash effect
+            flash.style.opacity = '1';
+            document.body.classList.add('shake');
+            
+            setTimeout(() => {
+                flash.style.transition = 'opacity 3s ease-out';
+                flash.style.opacity = '0';
+            }, 100);
+
+            // 2. Create Fireball & Mushroom Cloud Particles
+            for(let i = 0; i < 800; i++) {
+                setTimeout(() => {
+                    const color = i % 3 === 0 ? '#ffae00' : (i % 2 === 0 ? '#ff3e3e' : '#ffffff');
+                    particles.push(new Particle(width / 2, height - 50, color, 15, Math.random() * 30 + 10));
+                }, i * 2);
+            }
+
+            // 3. Stop shaking after a while
+            setTimeout(() => {
+                document.body.classList.remove('shake');
+                active = false;
+            }, 4000);
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.2)'; // Motion blur trail
+            ctx.fillRect(0, 0, width, height);
+
+            particles.forEach((p, index) => {
+                p.update();
+                p.draw();
+                if (p.life <= 0) particles.splice(index, 1);
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
+
